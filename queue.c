@@ -19,15 +19,27 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 /**
  * @brief Allocates a new queue
  * @return The new queue, or NULL if memory allocation failed
  */
 queue_t *queue_new(void) {
-    queue_t *q = malloc(sizeof(queue_t));
     /* What if malloc returned NULL? */
+
+    queue_t *q = malloc(sizeof(queue_t));
+    
+    /* Test for malloc failure */
+    if (q == NULL) {
+        return NULL;
+    }
+
     q->head = NULL;
+    q->tail = NULL;
+    q->size = 0;
+
+    
     return q;
 }
 
@@ -36,8 +48,23 @@ queue_t *queue_new(void) {
  * @param[in] q The queue to free
  */
 void queue_free(queue_t *q) {
-    /* How about freeing the list elements and the strings? */
-    /* Free queue structure */
+
+    /* Test for empty/no queue */
+    if (q==NULL)
+    {
+        return;
+    }
+    list_ele_t* temp;
+    list_ele_t* item = q->head;
+
+    while (item != NULL)
+    {
+        temp = item->next;
+        free(item->value);
+        free(item);
+        item = temp;
+    }
+
     free(q);
 }
 
@@ -54,13 +81,47 @@ void queue_free(queue_t *q) {
  * @return false if q is NULL, or memory allocation failed
  */
 bool queue_insert_head(queue_t *q, const char *s) {
+
+    /* Test for empty/no queue */
+    if (q == NULL)
+    {
+        return false;
+    }
+
     list_ele_t *newh;
-    /* What should you do if the q is NULL? */
-    newh = malloc(sizeof(list_ele_t));
-    /* Don't forget to allocate space for the string and copy it */
-    /* What if either call to malloc returns NULL? */
+
+    newh = malloc(sizeof(list_ele_t)); 
+    /* Test for malloc failure */
+    if (newh==NULL)
+    {
+        return false;
+    }
+
+    //Allocate memory for each char in the input
+    newh->value = malloc(sizeof(char) * strlen(s));
+    /* Test for malloc failure */
+    if (newh->value ==  NULL)
+    {
+        free(newh);
+        return false;
+    }
+    //Copy string into theh node
+    strcpy(newh->value, s);
+    
+    //Link new node to old head
     newh->next = q->head;
+    //Point queue head at the new node
     q->head = newh;
+    
+    //If it's the first element, it's both the head and the tail, and points at NULL
+    if (q->size == 0)
+    {
+        q->tail = newh;
+        q->head->next = NULL;
+    }
+   
+    q->size++; 
+
     return true;
 }
 
@@ -77,9 +138,48 @@ bool queue_insert_head(queue_t *q, const char *s) {
  * @return false if q is NULL, or memory allocation failed
  */
 bool queue_insert_tail(queue_t *q, const char *s) {
-    /* You need to write the complete code for this function */
-    /* Remember: It should operate in O(1) time */
-    return false;
+    
+    /* Test for empty/no queue */
+    if (q == NULL)
+    {
+        return false;
+    }
+    else if (q->size == 0)
+    {
+        printf("Queue is empty\n");
+        return false;
+    }
+    else
+    {
+        list_ele_t *newt = malloc(sizeof(list_ele_t));
+
+        /* Test for malloc failure */
+        if (newt == NULL)
+        {
+            return false;
+        }
+
+        //Allocate memory for each char in the input
+        newt->value = malloc(sizeof(char) * strlen(s));
+        
+        /* Test for malloc failure */
+        if (newt->value ==  NULL)
+        {
+            free(newt);
+            return false;
+        }
+        //Move argument string into node
+        strcpy(newt->value, s);
+
+        //Assign new tail to the old one, make new tail point at NULL
+        q->tail->next = newt;
+        q->tail = newt;
+        q->tail->next = NULL;
+
+        q->size++;
+        
+        return true;
+    }
 }
 
 /**
@@ -100,8 +200,32 @@ bool queue_insert_tail(queue_t *q, const char *s) {
  * @return false if q is NULL or empty
  */
 bool queue_remove_head(queue_t *q, char *buf, size_t bufsize) {
-    /* You need to fix up this code. */
+    
+    /* Test for empty/no queue */
+    if (q == NULL || q->size == 0)
+    {
+        return false;
+    }
+
+    //Temp variable to free memory after moving head to the right
+    list_ele_t* temp = q->head;
+    
+    ///Move head one right
     q->head = q->head->next;
+
+    //Buffer variable on:
+    if (buf!= NULL)
+    {
+        strncpy(buf, temp->value, bufsize-1);
+        buf[bufsize-1] = '\0';
+    }
+    
+    free(temp->value);
+    free(temp);
+
+    //Reduce size of queue by one
+    q->size--;
+
     return true;
 }
 
@@ -116,9 +240,13 @@ bool queue_remove_head(queue_t *q, char *buf, size_t bufsize) {
  *         0 if q is NULL or empty
  */
 size_t queue_size(queue_t *q) {
-    /* You need to write the code for this function */
-    /* Remember: It should operate in O(1) time */
-    return 0;
+    /* Test for empty/no queue */
+    if (q == NULL)
+    {
+        return 0;
+    }
+
+    return q->size;
 }
 
 /**
@@ -131,5 +259,49 @@ size_t queue_size(queue_t *q) {
  * @param[in] q The queue to reverse
  */
 void queue_reverse(queue_t *q) {
-    /* You need to write the code for this function */
+    
+    /* Test for empty/no queue, or one element queue */
+    if (q == NULL || q->size == 0 || q->size == 1)
+    {
+        return;
+    }
+    
+    /* In case of 2-element queue, swap head and tail */
+    else if (q->size == 2)
+    {
+        //Make head point to nothing
+        q->head->next = NULL;
+        //Make tail point to head
+        q->tail->next = q->head;
+        //Assign queue head to tail location
+        q->head = q->tail;
+        //Assign tail to where the new head is pointing
+        q->tail = q->head->next;
+        return;
+    }
+
+    /* In case where queue size is greater than 2 */
+    else
+    {
+        //We need two temps to not lose connection to any node
+        list_ele_t* temp1 = NULL;
+        list_ele_t* temp2 = NULL;
+        
+        //New tail points to old head
+        q->tail = q->head;
+
+        //Loop until new head points at NULL (until we assign head to tail)
+        while (q->head->next != NULL){
+            //Move temp2 one node to the right
+            temp2 = q->head->next;
+            //Head linked to one left
+            q->head->next = temp1;
+            //Temp1 one to the right
+            temp1 = q->head;
+            //Head one to the right
+            q->head = temp2;
+        }
+        q->head->next = temp1;
+        return;
+    }
 }
